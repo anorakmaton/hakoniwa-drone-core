@@ -45,6 +45,7 @@ def joystick_control(client: hakosim.MultirotorClient, joystick, stick_monitor: 
                             event_triggered = stick_monitor.switch_event(event.button, (event.type == pygame.JOYBUTTONDOWN))
                             print(f"button event: switch_index={event.button} event_op_index={event_op_index} down: {(event.type == pygame.JOYBUTTONDOWN)} event_triggered={event_triggered}")
                             data.button[event_op_index] = event_triggered
+                            print(f"data.button: {data.button}")
                             if event_triggered:
                                 if event_op_index == stick_monitor.rc_config.SWITCH_CAMERA_SHOT:
                                     time.sleep(0.5)
@@ -52,6 +53,7 @@ def joystick_control(client: hakosim.MultirotorClient, joystick, stick_monitor: 
                     else:
                         print(f'ERROR: not supported button index: {event.button}')
             #print("data: button", data['button'])
+            print(f"\rdata.axis: [0]: {data.axis[0]:.3f}, [1]: {data.axis[1]:.3f}, [2]: {data.axis[2]:.3f}, [3]: {data.axis[3]:.3f}", end="")
             client.putGameJoystickData(data)
     except KeyboardInterrupt:
         pygame.joystick.quit()
