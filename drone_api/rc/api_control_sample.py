@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import libs.hakosim as hakosim
+import hakoniwa_pdu.apps.drone.hakosim as hakosim
 import time
 import math
 import numpy

@@ -1,3 +1,5 @@
+[English](ardupilot-setup.en.md) | 日本語
+
 # TIPS
 
 

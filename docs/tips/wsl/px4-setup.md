@@ -1,3 +1,5 @@
+[English](px4-setup.en.md) | 日本語
+
 # TIPS
 
 

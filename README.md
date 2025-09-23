@@ -1,3 +1,5 @@
+[English Version](README.en.md)
+
 このリポジトリでは、[hakoniwa-px4sim](https://github.com/toppers/hakoniwa-px4sim) を発展させ、拡張性と汎用性を高めたドローンシミュレータのコア機能を提供します。PX4やArdupilot、ロボットシステム(ROS)、さらにはスマホ、XR、Webとの連携も視野に入れた柔軟な設計が特徴です。
 
 # 🚨 License Notice / ライセンスについて
@@ -87,7 +89,16 @@ For commercial licensing inquiries:
 * 3DLiDARデータの取得とデバッグ表示
 * ドローンの着陸
 
-詳細は、[こちら](/drone_api/README-ja.md)を参照ください。
+さらに、本APIは、用途に応じて2種類を利用できます。
+
+- 📘 詳細: [箱庭ドローン操作用 Python API](drone_api/README-ja.md)
+  - 箱庭システムを前提としたAPI。
+  - ドローンを直接PDU経由で制御し、Unity/Unrealの可視化や外部環境シミュレーションと統合可能。
+  - 教育・実習・デモ用途に最適。
+- 📘 詳細: [Python API (Ardupilot / PX4 対応)](docs/python_api/mavlink_api.md)
+  - `pymavlink` を利用し、ArdupilotやPX4 SITLと連携可能。
+  - Ardupilot/PX4の制御モードや状態遷移を吸収し、同一のAPIで操作可能。
+  - 複数機体・混在環境（Ardupilot + PX4）もサポート。
 
 ## 外部環境(風や温度など)のシミュレーション
 
@@ -103,6 +114,53 @@ For commercial licensing inquiries:
 
 なお、外部環境のシミュレーション実行用のサンプルプログラムを Python で提供しています。
 本サンプルを利用される場合は、事前に、[箱庭ドローン操作用 Python API](#箱庭ドローン操作用-python-api)のセットアップを行ってください。
+
+## 複数機体でのシミュレーション
+
+箱庭ドローンシミュレータは、複数のドローン機体を同時にシミュレーションする機能を提供します。
+複数の機体を用いた隊列飛行の検証など、より高度なシナリオのシミュレーションが可能です。
+
+複数機体のシミュレーションは、以下のフライトコントローラに対応しています。
+
+- Ardupilot
+- PX4 
+- 箱庭ドローン操作用 Python API での制御
+
+設定ファイルでインスタンス数を指定することで、2機にとどまらず N 機体の同時シミュレーションも可能です。
+
+※ 実行可能な台数はマシンの性能に左右されます。
+
+### 複数機体のアーキテクチャ
+
+以下の図は、複数機体シミュレーションにおける構成を示しています。
+
+- MAVLink経由の制御では、各ドローンごとに FCU (Ardupilot/PX4) インスタンスを起動し、
+  Python クライアントは MAVLink ポートを通じて個別に接続します。
+- Hakoniwa PDU経由の制御では、Python クライアントが直接 PDU を介して
+  各ドローンインスタンスを制御します。
+- 各機体には対応する `drone_config_x.json` が存在し、aircraft と controller の設定を定義します。
+
+![image](/docs/images/multi-drone-architecture.png)
+
+### 複数機体のセットアップおよび実行方法
+
+- [Ardupilotでの複数機体シミュレーション](/docs/multi_drones/ardupilot.md)
+- [PX4での複数機体シミュレーション](/docs/multi_drones/px4.md)
+- [箱庭ドローン操作用 Python APIでの複数機体制御](/docs/multi_drones/hakoniwa_python.md)
+
+## ログリプレイ機能
+
+本シミュレータは、記録された飛行ログ（`drone_dynamics.csv`）を再生するログリプレイ機能を搭載しています。
+この機能により、過去のシミュレーション飛行を再現し、詳細な分析やデバッグを行うことが可能です。
+
+主な特徴：
+*   **シミュレーションの再現**: ログデータに基づき、ドローンの動きを忠実に再現します。
+*   **再生制御**: 再生範囲の指定や、再生速度の変更（スロー再生など）が可能です。
+*   **透過的な切り替え**: 通常のシミュレーションと同じインターフェースを利用するため、可視化環境（Unity/Unreal）などをそのまま利用してリプレイを確認できます。
+
+リプレイ機能の詳細な設定方法や実行手順については、以下のドキュメントを参照してください。
+
+*   [ログリプレイ機能の詳細 (replay/README.md)](replay/README.md)
 
 ## 他OSSとの比較
 
