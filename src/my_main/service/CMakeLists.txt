@@ -7,7 +7,7 @@ if(WIN32)
 endif()
 
 # プロジェクトの定義
-project(hakoniwa-drone-core-service-sample VERSION 1.0 LANGUAGES C CXX)
+project(my-hakoniwa-drone-core-service-sample VERSION 1.0 LANGUAGES C CXX)
 
 # OSの判定
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -17,10 +17,10 @@ else()
 endif()
 
 set(TARGETS 
-    drone_service_rc
+    my_drone_service_rc
 )
 
-add_executable(drone_service_rc main_drone_service_rc.cpp)
+add_executable(my_drone_service_rc my_main_drone_service.cpp)
 
 foreach(TARGET ${TARGETS})
     MESSAGE(STATUS "TARGET: ${TARGET}")
@@ -49,9 +49,13 @@ foreach(TARGET ${TARGETS})
         PRIVATE ${GLM_SOURCE_DIR}
         PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
         PRIVATE ${ROS2PDU_SOURCE_DIR}/pdu/types
+        PRIVATE ${HAKO_CORE_DIR}/src/include
+        PRIVATE ${HAKO_CORE_DIR}/core/src
+        PRIVATE ${HAKO_CORE_DIR}/core/src/include
     )
     target_compile_features(${TARGET} PRIVATE cxx_std_17)
-    target_link_libraries(${TARGET} PRIVATE hako_aircraft hako_controller hako_logger hako_service drone_physics  )
+    target_link_libraries(${TARGET} PRIVATE hako_aircraft hako_controller hako_logger hako_service hako_drone_core hako_comm drone_physics hako conductor assets )
     target_link_directories(${TARGET} PRIVATE ${PROJECT_ROOT_DIR}/lib)
+    target_link_directories(${TARGET} PRIVATE ${prebuilt_libs_SOURCE_DIR})
 endforeach()
 

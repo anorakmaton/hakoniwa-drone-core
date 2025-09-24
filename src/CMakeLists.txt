@@ -1,5 +1,20 @@
 cmake_minimum_required(VERSION 3.10...3.25)
 
+# エンコーディング設定（Windows用）
+if(WIN32)
+    # コンパイラオプションでUTF-8を指定
+    add_compile_options(/utf-8)
+    # MSVCランタイムライブラリの設定
+    set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    
+    # CMakeメッセージの文字エンコーディング設定
+    set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
+    
+    # 出力ディレクトリの設定時にエンコーディングを考慮
+    set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif()
+
 project(hakoniwa-px4sim-root
     VERSION 1.0.0
     DESCRIPTION "hakoniwa-drone-core project"
@@ -97,7 +112,20 @@ message(STATUS "LIB_OUTPUT_DIR: ${LIB_OUTPUT_DIR}")
 
 set(HAKO_CORE_DIR "${PROJECT_SOURCE_DIR}/../thirdparty/hakoniwa-core-cpp-client")
 
+# hakoniwa-core-cpp-clientをソースからビルド
+set(HAKO_CORE_SOURCE_DIR "${HAKO_CORE_DIR}")
+set(HAKO_INC_DIR "${HAKO_CORE_DIR}/core/src/include")
+
+# Add hakoniwa-core include directories globally
+include_directories(${HAKO_CORE_DIR}/core/src/include)
+include_directories(${HAKO_CORE_DIR}/src/include)
+
+add_subdirectory(${HAKO_CORE_DIR}/core/src ${CMAKE_BINARY_DIR}/hakoniwa-core)
+add_subdirectory(${HAKO_CORE_DIR}/src/conductor ${CMAKE_BINARY_DIR}/hakoniwa-conductor)
+add_subdirectory(${HAKO_CORE_DIR}/src/assets ${CMAKE_BINARY_DIR}/hakoniwa-assets)
+
 if (NOT ANDROID_BUILD)
 
 add_subdirectory(main_for_sample)
+add_subdirectory(my_main)
 endif()
