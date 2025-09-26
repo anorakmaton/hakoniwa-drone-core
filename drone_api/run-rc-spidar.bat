@@ -1,0 +1,1 @@
+python rc\rc-spidar.py ..\..\hakoniwa-unity-drone\simulation\avatar-drone-2.json rc\rc_config\Spidar-control.json

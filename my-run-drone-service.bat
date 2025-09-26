@@ -1,0 +1,1 @@
+..\win\win-main_hako_drone_service.exe .\config\drone\rc-1 ..\hakoniwa-unity-drone\simulation\avatar-drone-2.json
