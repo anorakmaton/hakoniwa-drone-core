@@ -11,6 +11,7 @@ import ctypes
 import math
 from return_to_home import DroneController
 from rc_utils.rc_utils import RcConfig, StickMonitor
+import libs.hakosim_types as hakosim_types
 
 # --- SPIDAR関連の定義 ---
 DLL_PATH = "C:/Users/e20317naga/hakoniwa/hakoniwa-drone-core/Spidar/Spidar.dll"
@@ -42,10 +43,58 @@ try:
 except AttributeError:
     print("❌ SPIDAR DLLの関数プロトタイプ設定に失敗しました。"); sys.exit(1)
 
-def quaternion_to_yaw(q: Quaternion):
+def spidar_quaternion_to_yaw(q: Quaternion):
+    sinp = 2 * (q.w * q.y - q.z * q.x)
+    if abs(sinp) >= 1:
+        return ctypes.c_float(math.copysign(math.pi / 2, sinp))
+    return ctypes.c_float(math.asin(sinp))
+
+def spidar_quaternion_to_pitch(q: Quaternion):
     siny_cosp = 2 * (q.w * q.z + q.x * q.y)
     cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z)
     return ctypes.c_float(math.atan2(siny_cosp, cosy_cosp))
+
+def spidar_quaternion_to_roll(q: Quaternion):
+    sinr_cosp = 2 * (q.w * q.x + q.y * q.z)
+    cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y)
+    return ctypes.c_float(math.atan2(sinr_cosp, cosr_cosp))
+
+def spidar_quaternion_to_euler(q: Quaternion):
+    # roll (x-axis rotation)
+    sinr_cosp = 2 * (q.w * q.x + q.y * q.z)
+    cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y)
+    roll = math.atan2(sinr_cosp, cosr_cosp)
+
+    # pitch (y-axis rotation)
+    sinp = 2 * (q.w * q.y - q.z * q.x)
+    if abs(sinp) >= 1:
+        pitch = math.copysign(math.pi / 2, sinp)
+    else:
+        pitch = math.asin(sinp)
+
+    # yaw (z-axis rotation)
+    siny_cosp = 2 * (q.w * q.z + q.x * q.y)
+    cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z)
+    yaw = math.atan2(siny_cosp, cosy_cosp)
+
+    return roll, pitch, yaw
+
+def apply_deadzone(value, deadzone_threshold=0.1):
+    """
+    デッドゾーンを適用する関数
+    Args:
+        value: 入力値
+        deadzone_threshold: デッドゾーンの閾値（絶対値）
+    Returns:
+        デッドゾーンを適用した値
+    """
+    if abs(value) < deadzone_threshold:
+        return 0.0
+    else:
+        # デッドゾーン外の値を0-1の範囲に正規化
+        sign = 1 if value > 0 else -1
+        normalized = (abs(value) - deadzone_threshold) / (1.0 - deadzone_threshold)
+        return sign * normalized
 
 # -----------------------------------------------------------------
 # 修正部分
@@ -73,7 +122,10 @@ def spidar_control(client: hakosim.MultirotorClient, stick_monitor: StickMonitor
             position = Vector3()
             rotation = Quaternion()
             spidar_dll.SpidarGetPose(serial_number, ctypes.byref(position), ctypes.byref(rotation), ctypes.byref(Vector3()), ctypes.byref(Vector3()))
-            
+            drone_pose: hakosim_types.Pose = client.simGetVehiclePose()
+            #print(f"Drone Position: x={drone_pose.position.x_val}, y={drone_pose.position.y_val}, z={drone_pose.position.z_val}")
+            drone_roll, drone_pitch, drone_yaw = hakosim_types.Quaternionr.quaternion_to_euler(drone_pose.orientation)
+            #print(f"Drone Orientation: roll={math.degrees(drone_roll):.2f}, pitch={math.degrees(drone_pitch):.2f}, yaw={math.degrees(drone_yaw):.2f}")
             data: GameControllerOperation = client.getGameJoystickData()
             data.axis = [0.0] * 6
                 
@@ -100,12 +152,28 @@ def spidar_control(client: hakosim.MultirotorClient, stick_monitor: StickMonitor
 
                     previous_gpio_value = current_gpio_value.value
             
-            data.axis[0] = 0 #quaternion_to_yaw(rotation).value * 2.0
+            # 選択肢1: 位置ベースの制御
+            raw_yaw = spidar_quaternion_to_yaw(rotation).value
+            processed_yaw = apply_deadzone(raw_yaw)
+            data.axis[0] = processed_yaw * -2.0
             data.axis[1] = position.y * 5.0
             data.axis[2] = position.x * 1.0
             data.axis[3] = position.z * 1.0
+
+            # 選択肢2: 姿勢ベースの制御
+            # data.axis[0] = quaternion_to_yaw(rotation).value * 2.0    # ヨー（SPIDARの回転）
+            # data.axis[1] = quaternion_to_pitch(rotation).value * 3.0  # ピッチ（SPIDARの前後傾斜）
+            # data.axis[2] = quaternion_to_roll(rotation).value * 3.0   # ロール（SPIDARの左右傾斜）
+            # data.axis[3] = position.z * 1.0
             client.putGameJoystickData(data)
-            print(f"\rdata.axis: [0]: {data.axis[0]:.3f}, [1]: {data.axis[1]:.3f}, [2]: {data.axis[2]:.3f}, [3]: {data.axis[3]:.3f}", end="")
+            # デバッグ用：全ての角度を表示
+            #_, _, yaw = spidar_quaternion_to_euler(rotation)
+            # pitch = spidar_quaternion_to_pitch(rotation).value
+            # roll = spidar_quaternion_to_roll(rotation).value
+            # print(f"\rYaw: {yaw:.3f}, Pitch: {pitch:.3f}, Roll: {roll:.3f} | "f"Pos X: {position.x:.3f}, Y: {position.y:.3f}, Z: {position.z:.3f}", end="")
+            #print(f"\rRaw Yaw: {raw_yaw:.3f} -> Processed: {processed_yaw:.3f} | ", end="")
+            #print(f"data.axis: [0]: {data.axis[0]:.3f}, [1]: {data.axis[1]:.3f}, [2]: {data.axis[2]:.3f}, [3]: {data.axis[3]:.3f}", end="")
+            #print(f"Drone yaw: {drone_yaw:.2f} | SPIDAR yaw: {yaw:.2f}")
             spring_force = Vector3(-position.x * 30.0, -position.y * 30.0, -position.z * 30.0)
             spidar_dll.SpidarSetForce(serial_number, ctypes.byref(spring_force), 1.0, 0.1, ctypes.byref(Vector3()), 0.0, 0.0, True, False)
 
