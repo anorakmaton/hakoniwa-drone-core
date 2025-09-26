@@ -1,0 +1,1 @@
+python .\rc\camera.py ..\config\pdudef\webavatar.json

@@ -1,0 +1,1 @@
+python rc\rc-custom.py ..\config\pdudef\webavatar.json rc\rc_config\ps4-control.json
