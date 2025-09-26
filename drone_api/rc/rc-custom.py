@@ -27,6 +27,10 @@ def joystick_control(client: hakosim.MultirotorClient, joystick, stick_monitor: 
             data : GameControllerOperation = client.getGameJoystickData()
             data.axis = list(data.axis)
             data.button = list(data.button)
+           
+            if (not data.axis) or len(data.axis) < 4:
+                data.axis = [0.0] * 4
+
             for event in pygame.event.get():
                 if event.type == pygame.JOYAXISMOTION:
                     if event.axis < 6:
@@ -53,7 +57,7 @@ def joystick_control(client: hakosim.MultirotorClient, joystick, stick_monitor: 
                     else:
                         print(f'ERROR: not supported button index: {event.button}')
             #print("data: button", data['button'])
-            print(f"\rdata.axis: [0]: {data.axis[0]:.3f}, [1]: {data.axis[1]:.3f}, [2]: {data.axis[2]:.3f}, [3]: {data.axis[3]:.3f}", end="")
+            #print(f"\rdata.axis: [0]: {data.axis[0]:.3f}, [1]: {data.axis[1]:.3f}, [2]: {data.axis[2]:.3f}, [3]: {data.axis[3]:.3f}", end="")
             client.putGameJoystickData(data)
     except KeyboardInterrupt:
         pygame.joystick.quit()
